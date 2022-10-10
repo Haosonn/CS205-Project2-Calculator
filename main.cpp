@@ -9,12 +9,15 @@ using namespace std;
 
 int main() {
     string s;
+    init();
     while(getline(cin, s)) {
         if (s == "exit") {
             return 0;
         }
-        if(isValidAssignmentExpression(s))
-            cout << "Variable assigned" << endl;
+        if (s.empty()) {
+            continue;
+        }
+        if(isValidAssignmentExpression(s)) ;
         else if(isValidExpression(s)) {
             try {
                 LargeNumber res = evaluateExpression(s);

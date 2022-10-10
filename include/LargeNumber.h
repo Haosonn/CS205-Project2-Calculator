@@ -2,25 +2,30 @@
 #define LARGENUMBER_H
 #define MAXN 10000
 #include <string>
+
+static short PREC = 10;
+
 class LargeNumber {
 public:
 
-    short reversedRawNumber[MAXN + 2];
-    short dotposition;
+    short reversedRawNumber[MAXN + 2]{};
+    short dotPos;
     short length;
     short neg;
     bool overflow;
 
     LargeNumber();
-    LargeNumber(std::string str);
-    LargeNumber(int num);
-    LargeNumber(double num);
-    LargeNumber(short *reversedRawNumber, short dotposition, short length, short neg, bool overflow);
-    std::string toString();
+    explicit LargeNumber(std::string str);
+    explicit LargeNumber(int num);
+    explicit LargeNumber(double num);
+    short at(int digit);
+    std::string toString() const;
+    short toShort() const;
+    int toInt() const;
 
-    void formatting();
+    void deleteZeros();
 
-    LargeNumber addZero() const;
+//    LargeNumber addZero() const;
 
     bool isZero() const;
 
@@ -34,12 +39,14 @@ public:
     bool operator<(const LargeNumber &a) const;
     bool operator<=(const LargeNumber &a) const;
 
-    static LargeNumber approx(LargeNumber l1, short precision) ; //round to precision digits
+    static void setPrecision(short prec);
+    static LargeNumber format(const LargeNumber &l, short precision) ; //round to precision digits
+    static LargeNumber abs(const LargeNumber &l);
     static LargeNumber calc(const LargeNumber &a, const LargeNumber &b, char op);
     static LargeNumber calc(const LargeNumber &a, char op);
-    static LargeNumber add(const LargeNumber &a, const LargeNumber &b) ;
-    static LargeNumber sub(const LargeNumber &a, const LargeNumber &b) ;
-    static LargeNumber mul(const LargeNumber &a, const LargeNumber &b) ;
+    static LargeNumber add(const LargeNumber &a, const LargeNumber &b);
+    static LargeNumber sub(const LargeNumber &a, const LargeNumber &b);
+    static LargeNumber mul(const LargeNumber &a, const LargeNumber &b);
     static LargeNumber div(const LargeNumber &a, const LargeNumber &b);
     static LargeNumber div(const LargeNumber &a, const LargeNumber &b, short precision);
     static LargeNumber pow(const LargeNumber &a, const LargeNumber &b, short precision);
@@ -49,6 +56,7 @@ public:
     static LargeNumber sqrt(const LargeNumber &a);
     static LargeNumber sqrt(const LargeNumber &a, short precision);
     static LargeNumber log(const LargeNumber &a);
+    static LargeNumber log(const LargeNumber &a, short precision);
     static LargeNumber ln(const LargeNumber &a);
     static LargeNumber ln(const LargeNumber &a, short precision);
     static LargeNumber sin(const LargeNumber &a);
