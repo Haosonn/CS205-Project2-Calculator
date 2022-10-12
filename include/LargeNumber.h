@@ -60,10 +60,12 @@ public:
     static LargeNumber ln(const LargeNumber &a);
     static LargeNumber ln(const LargeNumber &a, short precision);
     static LargeNumber sin(const LargeNumber &a);
+    static LargeNumber sin(const LargeNumber &a, short precision);
     static LargeNumber cos(const LargeNumber &a);
+    static LargeNumber cos(const LargeNumber &a, short precision);
     static LargeNumber tan(const LargeNumber &a);
+    static LargeNumber tan(const LargeNumber &a, short precision);
     static LargeNumber factorial(const LargeNumber &a);
-//    static LargeNumber abs(const LargeNumber &a);
     static LargeNumber mod(const LargeNumber &a, const LargeNumber &b);
     static LargeNumber gcd(const LargeNumber &a, const LargeNumber &b);
     static LargeNumber lcm(const LargeNumber &a, const LargeNumber &b);

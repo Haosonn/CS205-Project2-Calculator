@@ -236,12 +236,17 @@ bool LargeNumber::operator== (const LargeNumber &a) const {
     LargeNumber tmpb = *this;
     tmpa.deleteZeros();
     tmpb.deleteZeros();
+    if(tmpa.isZero() && tmpb.isZero()) return true;
     if (tmpa.neg != tmpb.neg) return false;
-    if (tmpa.length  != tmpb.length) return false;
+    int aHigh = tmpa.length - 1 - tmpa.dotPos;
+    int aLow = -tmpa.dotPos;
+    int bHigh = tmpb.length - 1 - tmpb.dotPos;
+    int bLow = -tmpb.dotPos;
+    if (aHigh != bHigh || aLow != bLow) return false;
     int i = tmpa.length - 1;
     while (i >= 0) {
         if (tmpa.reversedRawNumber[i] != tmpb.reversedRawNumber[i])
-            return tmpa.reversedRawNumber[i] > tmpb.reversedRawNumber[i];
+            return false;
         i--;
     }
     return true;
@@ -257,6 +262,10 @@ bool LargeNumber::operator< (const LargeNumber &a) const {
 
     //now both are positive
     //calculate the highest and lowest digit of the two numbers
+    if(tmpb.isZero())
+        return true;
+    if(tmpa.isZero())
+        return false;
     int aHigh = tmpa.length - 1 - tmpa.dotPos;
     int bHigh = tmpb.length - 1 - tmpb.dotPos;
     int aLow = -tmpa.dotPos;
@@ -307,6 +316,7 @@ LargeNumber LargeNumber::format(const LargeNumber &l, short precision) {
         short carry;
         carry = tmp.at(-(precision + 1)) >= 5;
         tmp.length -= tmp.dotPos - precision;
+        if (tmp.length < 0) return LargeNumber(0);
         if(!tmp.length) tmp.reversedRawNumber[0] = 0;
         for(int i = 0; i < tmp.length; i++)
             tmp.reversedRawNumber[i] = tmp.reversedRawNumber[i + tmp.dotPos - precision];
@@ -355,17 +365,24 @@ LargeNumber LargeNumber::calc(const LargeNumber &a, const LargeNumber &b, char o
     }
 }
 
+
 LargeNumber LargeNumber::calc(const LargeNumber &a , char op) {
     switch (op) {
-//        case 's':
-//            return sin(a);
-//        case 'c':
-//            return cos(a);
-//        case 't':
-//            return tan(a);
+        case 'g':
+            return log(a);
+        case 's':
+            return sin(a);
+        case 'c':
+            return cos(a);
+        case 't':
+            try {
+                return tan(a);
+            } catch (const char* msg) {
+                throw msg;
+            }
         case 'n':
             return ln(a);
-        case '!':
+        case '~':
             return a.negate();
         case 'e':
             return exp(a);
@@ -597,18 +614,16 @@ LargeNumber LargeNumber::exp(const LargeNumber &a, short precision) {
         res.overflow = true;
         return res;
     }
-    LargeNumber fac = LargeNumber(1); //factorial
-    LargeNumber base = LargeNumber(1); //power of a
+    LargeNumber term = LargeNumber(1);
     LargeNumber diff = LargeNumber(1);
     diff.dotPos = precision + 1;
     for (int i = 1; ; i++) {
-        fac = mul(fac, LargeNumber(i));
-        base = mul(base, a);
-        LargeNumber term = div(base, fac, precision + 1);
-        term = format(term, precision + 1);
+        term = mul(term, a);
+        term = div(term, LargeNumber(i), precision + 1);
         if (abs(term) <= diff) break;
+        term = format(term, precision + 1);
         res = add(res, term);
-        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
+//        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
     }
 
     res = format(res, precision);
@@ -622,7 +637,7 @@ LargeNumber LargeNumber::ln(const LargeNumber &a) {
 LargeNumber LargeNumber::ln(const LargeNumber &a, short precision) {
     LargeNumber res = LargeNumber(0);
     if(a.isZero() || a.neg == -1) {
-        throw "ln of negative number is undefined";
+        throw "Logarithm of non-positive number is undefined";
     }
     if(a.overflow) {
         res.overflow = true;
@@ -654,7 +669,7 @@ LargeNumber LargeNumber::ln(const LargeNumber &a, short precision) {
         term = format(term, precision + 1);
         if(abs(term) <= diff) break;
         res = add(res, term);
-        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
+//        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
     }
 
     res = format(res, precision);
@@ -684,71 +699,106 @@ LargeNumber LargeNumber::pow(const LargeNumber &a, const LargeNumber &b, short p
 }
 
 
-/*
-LargeNumber LargeNumber::log(LargeNumber a) {
-    LargeNumber res = LargeNumber();
+LargeNumber LargeNumber::log(const LargeNumber &a) {
+    return log(a, PREC);
+}
+
+LargeNumber LargeNumber::log(const LargeNumber &a, short precision) {
+    LargeNumber res = div(ln(a, precision * 2), ln(LargeNumber(10), precision + 5), precision + 5);
+    return format(res, precision);
+}
+
+LargeNumber LargeNumber::sin(const LargeNumber &a) {
+    return sin(a, PREC);
+}
+
+LargeNumber LargeNumber::sin(const LargeNumber &a, short precision) {
+    LargeNumber res = a;
+    if(a.isZero()) return LargeNumber(0);
     if(a.overflow) {
         res.overflow = true;
         return res;
     }
-    if (a.neg == -1) {
-        res.overflow = true;
-        return res;
+    LargeNumber term = a;
+    LargeNumber aSquare = mul(a, a);
+    LargeNumber diff = LargeNumber(1);
+    diff.dotPos = precision + 1;
+    for (int i = 3; ; i+=2) {
+        term = mul(term, aSquare);
+        term = div(term, LargeNumber(i - 1), precision + 1);
+        term = div(term, LargeNumber(i), precision + 1);
+        if (abs(term) <= diff) break;
+        term = format(term, precision + 1);
+        if((i - 1) % 4 == 0) res = add(res, term);
+        else res = sub(res, term);
+//        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
     }
-    if (res.length > MAXL) {
-        res.overflow = true;
-        return res;
-    }
+    res = format(res, precision);
     return res;
+
 }
 
-LargeNumber LargeNumber::sin(LargeNumber a) {
-    LargeNumber res = LargeNumber();
+LargeNumber LargeNumber::cos(const LargeNumber &a) {
+    return cos(a, PREC);
+}
+
+LargeNumber LargeNumber::cos(const LargeNumber &a, short precision) {
+    LargeNumber res = LargeNumber(1);
+    if(a.isZero()) return LargeNumber(1);
     if(a.overflow) {
         res.overflow = true;
         return res;
     }
-    if (res.length > MAXL) {
-        res.overflow = true;
-        return res;
+    LargeNumber term = LargeNumber(1);
+    LargeNumber aSquare = mul(a, a);
+    LargeNumber diff = LargeNumber(1);
+    diff.dotPos = precision + 1;
+    for (int i = 2; ; i+=2) {
+        term = mul(term, aSquare);
+        term = div(term, LargeNumber(i - 1), precision + 1);
+        term = div(term, LargeNumber(i), precision + 1);
+        if (abs(term) <= diff) break;
+        term = format(term, precision + 1);
+        if(i % 4 == 0) res = add(res, term);
+        else res = sub(res, term);
+//        std::cout << i << " " << term.toString() << " " << res.toString() << std::endl;
     }
+    res = format(res, precision);
     return res;
 }
 
-LargeNumber LargeNumber::cos(LargeNumber a) {
-    LargeNumber res = LargeNumber();
-    if(a.overflow) {
-        res.overflow = true;
-        return res;
+
+
+LargeNumber LargeNumber::tan(const LargeNumber &a) {
+    return tan(a, PREC);
+}
+
+LargeNumber LargeNumber::tan(const LargeNumber &a, short precision) {
+    LargeNumber s = sin(a, 2 * precision + 5);
+    LargeNumber c = cos(a, precision + 5);
+    LargeNumber diff = LargeNumber(1);
+    diff.dotPos = precision + 1;
+    if(abs(format(c, precision)) <= diff) {
+        throw "Tangent of pi/2 + k * pi is undefined";
     }
-    if (res.length > MAXL) {
-        res.overflow = true;
-        return res;
+    LargeNumber res = div(s, c, precision + 5);
+    return format(res, precision);
+}
+
+LargeNumber LargeNumber::factorial(const LargeNumber &a) {
+    LargeNumber res = LargeNumber(1);
+    if(!a.isInteger())
+        throw "Factorial of non-integer is undefined";
+    if(a.neg == -1)
+        throw "Factorial of negative number is undefined";
+    if(a.overflow)
+        throw "Factorial of too large number is undefined";
+    int n = a.toInt();
+    for (int i = 2; i <= n; i++) {
+        res = mul(res, LargeNumber(i));
     }
     return res;
 }
-
-
-LargeNumber LargeNumber::tan(LargeNumber a) {
-    LargeNumber res = LargeNumber();
-    if(a.overflow) {
-        res.overflow = true;
-        return res;
-    }
-    if (res.length > MAXL) {
-        res.overflow = true;
-        return res;
-    }
-    return res;
-}
-
- */
-
-
-//bool ifValid(char *str) {
-//    return regex_match(string(str), regex("-?\\d+\\.?\\d*(e-?\\d+)?"));
-//}
-
 /*
 double str2double(char *str) {
     int i = 0;

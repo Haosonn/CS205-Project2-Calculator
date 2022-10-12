@@ -8,9 +8,9 @@
 #include <utility>
 using namespace std;
 
-const map<string, char> func = {{"!",'!'},
+const map<string, char> func = {{"~",'~'},
                                 {"sqrt", 'r'},
-                                {"sin",  'i'},
+                                {"sin",  's'},
                                 {"cos",  'c'},
                                 {"tan",  't'},
                                 {"log",  'g'},
@@ -24,8 +24,29 @@ LargeNumber getAns() {
     return ans;
 }
 
+void operatorHandling(char op, stack <LargeNumber> &operands, stack <char> &operators) {
+    if (op == '+' || op == '-' || op == '*' || op == '/' || op == '^') {
+        operators.pop();
+        LargeNumber l1 = operands.top();
+        operands.pop();
+        LargeNumber l2 = operands.top();
+        operands.pop();
+        try {
+            operands.push(LargeNumber::calc(l1, l2, op));
+        } catch (runtime_error &e) {
+            throw e;
+        }
+    } else {
+        op = operators.top();
+        operators.pop();
+        LargeNumber l1 = operands.top();
+        operands.pop();
+        operands.push(LargeNumber::calc(l1, op));
+    }
+}
+
 int preference(char op) {
-    if(op == '+' || op == '-') return 1;
+    if(op == '+' || op == '-' || op == '~') return 1;
     if(op == '*' || op == '/') return 2;
     if(op == '^') return 3;
     return 0;
@@ -34,7 +55,7 @@ int preference(char op) {
 
 
 bool isOperator(char op) {
-    return op == '+' || op == '-' || op == '*' || op == '/' || op == '^' || op == '(' || op == ')' || op == '!';
+    return op == '+' || op == '-' || op == '*' || op == '/' || op == '^' || op == '(' || op == ')' || op == '~';
 }
 
 bool isNumber(char c) {
@@ -53,13 +74,13 @@ string removeSpace(const string& str) {
     return res;
 }
 
-//convert unary minus sign to '!'
+//convert unary minus sign to '~'
 string checkMinusSign(string str) {
     string res;
     for(int i = 0; i < str.length(); i++) {
         if(str[i] == '-') {
             if(i == 0 || str[i - 1] == '(' ) {
-                res += '!';
+                res += '~';
             } else {
                 res += '-';
             }
@@ -85,7 +106,10 @@ bool isValidExpression(string str) {
         else if(c == ')') bracketCnt--;
         if(bracketCnt < 0) return false;
     }
-    if(bracketCnt != 0) return false;
+    if(bracketCnt != 0) {
+        string msg = "Unmatched bracket!";
+        cout << msg << endl;
+    }
     stack<char> operators;
     stack<string> operands;
 
@@ -112,15 +136,21 @@ bool isValidExpression(string str) {
             operators.pop();
         } else if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' || str[i] == '^') {
             while (!operators.empty() && operators.top() != '(') {
-                if(operands.size() < 2) return false;
+                char op = operators.top();
                 operators.pop();
-                operands.pop();
-                operands.pop();
+                if (op == '+' || op == '-' || op == '*' || op == '/' || op == '^') {
+                    if(operands.size() < 2) return false;
+                    operands.pop();
+                    operands.pop();
+                } else {
+                    if(operands.empty()) return false;
+                    operands.pop();
+                }
                 operands.push("");
             }
             operators.push(str[i]);
-        } else if (str[i] == '!') {
-            operators.push('!');
+        } else if (str[i] == '~') {
+            operators.push('~');
         } else {
             string tmp;
             while (i < str.length() && !isOperator(str[i]) ) {
@@ -222,34 +252,17 @@ LargeNumber evaluateExpression(string str) {
         else if (str[i] == ')') {
             while (operators.top() != '(') {
                 char op = operators.top();
-                if (op == '+' || op == '-' || op == '*' || op == '/' || op == '^') {
-                    operators.pop();
-                    LargeNumber l1 = operands.top();
-                    operands.pop();
-                    LargeNumber l2 = operands.top();
-                    operands.pop();
-                    operands.push(LargeNumber::calc(l1, l2, op));
-                } else {
-                    operators.pop();
-                    LargeNumber l1 = operands.top();
-                    operands.pop();
-                    operands.push(LargeNumber::calc(l1, op));
-                }
+                operatorHandling(op, operands, operators);
             }
             operators.pop();
         } else if (str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' || str[i] == '^') {
             while (!operators.empty() && preference(str[i]) <= preference(operators.top())) {
                 char op = operators.top();
-                operators.pop();
-                LargeNumber l1 = operands.top();
-                operands.pop();
-                LargeNumber l2 = operands.top();
-                operands.pop();
-                operands.push(LargeNumber::calc(l1, l2, op));
+                operatorHandling(op, operands, operators);
             }
             operators.push(str[i]);
-        } else if (str[i] == '!') {
-            operators.push('!');
+        } else if (str[i] == '~') {
+            operators.push('~');
         } else {
             string tmp;
             while (i < str.length() && !isOperator(str[i]) ) {
@@ -271,24 +284,7 @@ LargeNumber evaluateExpression(string str) {
     }
     while (!operators.empty()) {
         char op = operators.top();
-        if (op == '+' || op == '-' || op == '*' || op == '/' || op == '^') {
-            operators.pop();
-            LargeNumber l1 = operands.top();
-            operands.pop();
-            LargeNumber l2 = operands.top();
-            operands.pop();
-            try {
-                operands.push(LargeNumber::calc(l1, l2, op));
-            } catch (runtime_error &e) {
-                throw e;
-            }
-        } else {
-            op = operators.top();
-            operators.pop();
-            LargeNumber l1 = operands.top();
-            operands.pop();
-            operands.push(LargeNumber::calc(l1, op));
-        }
+        operatorHandling(op, operands, operators);
     }
     ans = operands.top();
     return operands.top();
