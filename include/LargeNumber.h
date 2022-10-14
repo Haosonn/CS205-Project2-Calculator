@@ -25,8 +25,6 @@ public:
 
     void deleteZeros();
 
-//    LargeNumber addZero() const;
-
     bool isZero() const;
 
     bool isInteger() const;
@@ -55,7 +53,7 @@ public:
     static LargeNumber exp(const LargeNumber &a, short precision);
     static LargeNumber sqrt(const LargeNumber &a);
     static LargeNumber sqrt(const LargeNumber &a, short precision);
-    static LargeNumber log(const LargeNumber &a);
+    static LargeNumber lg(const LargeNumber &a);
     static LargeNumber log(const LargeNumber &a, short precision);
     static LargeNumber ln(const LargeNumber &a);
     static LargeNumber ln(const LargeNumber &a, short precision);
@@ -67,13 +65,11 @@ public:
     static LargeNumber tan(const LargeNumber &a, short precision);
     static LargeNumber factorial(const LargeNumber &a);
     static LargeNumber mod(const LargeNumber &a, const LargeNumber &b);
-    static LargeNumber gcd(const LargeNumber &a, const LargeNumber &b);
-    static LargeNumber lcm(const LargeNumber &a, const LargeNumber &b);
+//    static LargeNumber gcd(const LargeNumber &a, const LargeNumber &b);
+//    static LargeNumber lcm(const LargeNumber &a, const LargeNumber &b);
 //    static LargeNumber round(const LargeNumber &a);
-    static LargeNumber floor(const LargeNumber &a);
-    static LargeNumber ceil(const LargeNumber &a);
-    static LargeNumber trunc(const LargeNumber &a);
-    static LargeNumber frac(const LargeNumber &a);
+//    static LargeNumber floor(const LargeNumber &a);
+//    static LargeNumber ceil(const LargeNumber &a);
 
 
 };

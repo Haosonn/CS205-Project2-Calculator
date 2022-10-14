@@ -118,12 +118,12 @@ std::string LargeNumber::toString() const {
     std::string output;
     LargeNumber tmp = *this;
     tmp.deleteZeros();
-    if(tmp.isZero()) return "0";
 //    tmp.deleteZeros();
     if (tmp.overflow) {
         output.append("Overflow!");
         return output;
     }
+    if(tmp.isZero()) return "0";
     if (tmp.neg == -1) output.append(std::string(1, '-'));
     if (tmp.dotPos >= tmp.length) {
         output.append("0.");
@@ -315,11 +315,13 @@ LargeNumber LargeNumber::format(const LargeNumber &l, short precision) {
     else {
         short carry;
         carry = tmp.at(-(precision + 1)) >= 5;
+        if (tmp.length < tmp.dotPos - precision || (tmp.length == tmp.dotPos - precision && !carry)) return LargeNumber(0);
+        if(tmp.length == tmp.dotPos - precision && carry) tmp.reversedRawNumber[0] = 0;
+        for(int i = 0; i - precision <= high; i++)
+            tmp.reversedRawNumber[i] = tmp.at(i - precision);
+//            tmp.reversedRawNumber[i] = tmp.reversedRawNumber[i + tmp.dotPos - precision];
         tmp.length -= tmp.dotPos - precision;
-        if (tmp.length < 0) return LargeNumber(0);
-        if(!tmp.length) tmp.reversedRawNumber[0] = 0;
-        for(int i = 0; i < tmp.length; i++)
-            tmp.reversedRawNumber[i] = tmp.reversedRawNumber[i + tmp.dotPos - precision];
+        tmp.reversedRawNumber[tmp.length] = 0;
         tmp.dotPos = precision;
 //        for(int i = tmp.length; i < l.length; i++) tmp.reversedRawNumber[i] = 0;
         int carryIdx = 0;
@@ -333,6 +335,11 @@ LargeNumber LargeNumber::format(const LargeNumber &l, short precision) {
             carryIdx++;
         }
         carryIdx--;
+        if(carryIdx == tmp.length) {
+            tmp.length++;
+            tmp.reversedRawNumber[carryIdx] = 1;
+            return tmp;
+        }
         tmp.length = std::max(tmp.length, (short) (carryIdx + 1));
         return tmp;
     }
@@ -359,7 +366,17 @@ LargeNumber LargeNumber::calc(const LargeNumber &a, const LargeNumber &b, char o
                 throw msg;
             }
         case '^':
-            return pow(b, a);
+            try {
+                return pow(b, a);
+            } catch (const char* msg) {
+                throw msg;
+            }
+        case '%':
+            try {
+                return mod(b, a);
+            } catch (const char* msg) {
+                throw msg;
+            }
         default:
             return LargeNumber();
     }
@@ -369,7 +386,7 @@ LargeNumber LargeNumber::calc(const LargeNumber &a, const LargeNumber &b, char o
 LargeNumber LargeNumber::calc(const LargeNumber &a , char op) {
     switch (op) {
         case 'g':
-            return log(a);
+            return lg(a);
         case 's':
             return sin(a);
         case 'c':
@@ -528,14 +545,18 @@ LargeNumber LargeNumber::mul(const LargeNumber &a, const LargeNumber &b) {
 }
 
 LargeNumber LargeNumber::div(const LargeNumber &a, const LargeNumber &b) {
-    if(b.isZero()) throw "Divide by zero";
+    LargeNumber res = LargeNumber();
+    if(a.overflow || b.overflow) {
+        res.overflow = true;
+        return res;
+    }
+    if(b.isZero()) throw "Divided by zero!";
     if(a.isZero()) return LargeNumber(0);
     LargeNumber tmpa = a;
     LargeNumber tmpb = b;
-    LargeNumber res = LargeNumber();
     if(!tmpa.isInteger() || !tmpb.isInteger()) {
-        int precision = std::max(std::max(tmpa.dotPos, tmpb.dotPos), (short)0);
-        tmpa = format(tmpa, (short)precision + std::max(tmpb.length - tmpa.length, 0) + 1);
+        short precision = std::max(std::max(tmpa.dotPos, tmpb.dotPos), (short)0);
+        tmpa = format(tmpa, tmpa.length + precision + std::max(tmpb.length - tmpa.length, 0) + 1);
         int tmpDotPos = tmpa.dotPos - tmpb.dotPos;
         tmpa.dotPos = 0;
         tmpb.dotPos = 0;
@@ -592,18 +613,28 @@ LargeNumber LargeNumber::div(const LargeNumber &a, const LargeNumber &b, short p
     }
 }
 
-LargeNumber LargeNumber::sqrt(const LargeNumber &a, short precision) {
-    if(a.neg == -1) {
-        throw "Sqrt of negative number";
-    }
-    else return pow(a, LargeNumber(0.5), precision);
-}
-
 LargeNumber LargeNumber::sqrt(const LargeNumber &a) {
     return sqrt(a, PREC);
 }
 
+LargeNumber LargeNumber::sqrt(const LargeNumber &a, short precision) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
+    if(a.neg == -1) {
+        throw "Sqrt of negative number is not defined!";
+    }
+    else return pow(a, LargeNumber(0.5), precision);
+}
+
 LargeNumber LargeNumber::exp(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     return exp(a,PREC);
 }
 
@@ -631,13 +662,18 @@ LargeNumber LargeNumber::exp(const LargeNumber &a, short precision) {
 }
 
 LargeNumber LargeNumber::ln(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     return format(ln(a, PREC + 5), PREC);
 }
 
 LargeNumber LargeNumber::ln(const LargeNumber &a, short precision) {
     LargeNumber res = LargeNumber(0);
     if(a.isZero() || a.neg == -1) {
-        throw "Logarithm of non-positive number is undefined";
+        throw "Logarithm of non-positive number is undefined!";
     }
     if(a.overflow) {
         res.overflow = true;
@@ -677,6 +713,12 @@ LargeNumber LargeNumber::ln(const LargeNumber &a, short precision) {
 }
 
 LargeNumber LargeNumber::pow(const LargeNumber &a, const LargeNumber &b) {
+    if(a.overflow || b.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
+
     if(b.isInteger() && b.neg == 1) {
         int p = b.toInt();
         LargeNumber res = LargeNumber(1);
@@ -690,16 +732,29 @@ LargeNumber LargeNumber::pow(const LargeNumber &a, const LargeNumber &b) {
         }
         return format(res, PREC);
     }
+    if(b.isInteger() && b.neg == -1) {
+        int p = -b.toInt();
+        return div(LargeNumber(1), pow(a, LargeNumber(p)), PREC);
+    }
+    if(a.neg == -1 && !b.isInteger()) {
+        throw "Negative base and non-integer exponent is undefined!";
+    }
     return format(pow(a, b,PREC + 10), PREC);
 }
 
+//for float numbers
 LargeNumber LargeNumber::pow(const LargeNumber &a, const LargeNumber &b, short precision) {
     LargeNumber res = exp(format(mul(b, ln(a,precision + 5)),precision + 5), precision);
     return res;
 }
 
 
-LargeNumber LargeNumber::log(const LargeNumber &a) {
+LargeNumber LargeNumber::lg(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     return log(a, PREC);
 }
 
@@ -709,16 +764,17 @@ LargeNumber LargeNumber::log(const LargeNumber &a, short precision) {
 }
 
 LargeNumber LargeNumber::sin(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber();
+        res.overflow = true;
+        return res;
+    }
     return sin(a, PREC);
 }
 
 LargeNumber LargeNumber::sin(const LargeNumber &a, short precision) {
     LargeNumber res = a;
     if(a.isZero()) return LargeNumber(0);
-    if(a.overflow) {
-        res.overflow = true;
-        return res;
-    }
     LargeNumber term = a;
     LargeNumber aSquare = mul(a, a);
     LargeNumber diff = LargeNumber(1);
@@ -739,6 +795,11 @@ LargeNumber LargeNumber::sin(const LargeNumber &a, short precision) {
 }
 
 LargeNumber LargeNumber::cos(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     return cos(a, PREC);
 }
 
@@ -770,6 +831,11 @@ LargeNumber LargeNumber::cos(const LargeNumber &a, short precision) {
 
 
 LargeNumber LargeNumber::tan(const LargeNumber &a) {
+    if(a.overflow) {
+        LargeNumber res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     return tan(a, PREC);
 }
 
@@ -779,7 +845,7 @@ LargeNumber LargeNumber::tan(const LargeNumber &a, short precision) {
     LargeNumber diff = LargeNumber(1);
     diff.dotPos = precision + 1;
     if(abs(format(c, precision)) <= diff) {
-        throw "Tangent of pi/2 + k * pi is undefined";
+        throw "Tangent of pi/2 + k * pi is undefined!";
     }
     LargeNumber res = div(s, c, precision + 5);
     return format(res, precision);
@@ -788,15 +854,31 @@ LargeNumber LargeNumber::tan(const LargeNumber &a, short precision) {
 LargeNumber LargeNumber::factorial(const LargeNumber &a) {
     LargeNumber res = LargeNumber(1);
     if(!a.isInteger())
-        throw "Factorial of non-integer is undefined";
+        throw "Factorial of non-integer is undefined!";
     if(a.neg == -1)
-        throw "Factorial of negative number is undefined";
-    if(a.overflow)
-        throw "Factorial of too large number is undefined";
+        throw "Factorial of negative number is undefined!";
+    if(a.overflow) {
+        res = LargeNumber(0);
+        res.overflow = true;
+        return res;
+    }
     int n = a.toInt();
     for (int i = 2; i <= n; i++) {
         res = mul(res, LargeNumber(i));
     }
+    return res;
+}
+
+LargeNumber LargeNumber::mod(const LargeNumber &a, const LargeNumber &b) {
+    if(a.overflow || b.overflow) {
+        LargeNumber res = LargeNumber();
+        res.overflow = true;
+        return res;
+    }
+    if(!a.isInteger() || !b.isInteger())
+        throw "Modulo of non-integer is undefined!";
+    LargeNumber quotient = div(a, b);
+    LargeNumber res = sub(a, mul(quotient, b));
     return res;
 }
 /*

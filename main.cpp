@@ -1,9 +1,7 @@
 #include <iostream>
 #include <regex>
-#include <cmath>
 #include <LargeNumber.h>
 #include "Expression.h"
-#include <map>
 #define MAXL 10000
 using namespace std;
 
@@ -19,13 +17,13 @@ int main() {
         }
         if (s == "\\help") {
             cout << "This is a calculator that can calculate expressions with variables and functions." << endl;
-            cout << "The supported functions are: sin, cos, tan, log, ln, exp, sqrt." << endl;
-            cout << "The supported operators are: +, -, *, /, ^, ~." << endl;
+            cout << "The supported functions are: sin, cos, tan, lg, ln, exp, sqrt." << endl;
+            cout << "The supported operators are: +, -, *, /, ^, !, %." << endl;
             cout << "The supported constants are: pi, e." << endl;
             cout << "The supported assignment expression is: var = expr." << endl;
             cout << "You can set precision by typing prec = n, where n is the number of digits." << endl;
             cout << "This will only be applied to the functions." << endl;
-            cout << "Otherwise, precision is set according to the maximum precision of your term" << endl;
+            cout << "Otherwise, precision is set according to the maximum precision of your term." << endl;
             cout << "Type \"exit\" to exit." << endl;
             cout << "Please enter your expression: ";
             continue;
@@ -33,7 +31,7 @@ int main() {
         if (s.empty()) {
             continue;
         }
-        if(isValidAssignmentExpression(s)) ;
+        if(isValidAssignmentExpression(s));
         else if(isValidExpression(s)) {
             try {
                 LargeNumber res = evaluateExpression(s);
@@ -42,7 +40,7 @@ int main() {
                 cout << msg << endl;
             }
         } else {
-            cout << "Invalid expression" << endl;
+            cout << "Invalid expression!" << endl;
         }
         cout << "Please enter your expression: ";
     }
